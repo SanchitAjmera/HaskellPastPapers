@@ -78,14 +78,16 @@ restrict x index bool
 -- The question suggests the following definition (in terms of buildBDD')
 -- but you are free to implement the function differently if you wish.
 buildBDD :: BExp -> [Index] -> BDD
-buildBDD
-  = undefined
+buildBDD exp1 indexes
+  = buildBDD' exp1 2 indexes
 
 -- Potential helper function for buildBDD which you are free
 -- to define/modify/ignore/delete/embed as you see fit.
 buildBDD' :: BExp -> NodeId -> [Index] -> BDD
-buildBDD'
-  = undefined
+buildBDD' exp1 node []
+  = []
+buildBDD' exp1 node  (index : indexes)
+  = (2 , (node, (index, (restrict exp1 index False), (restrict exp1 index True))) : snd(buildBDD' exp1 node indexes))
 
 ------------------------------------------------------
 -- PART IV
