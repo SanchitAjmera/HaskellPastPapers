@@ -48,7 +48,7 @@ insertAt :: Int -> a -> [a] -> [a]
 insertAt n insertion list
   = first  ++ (insertion : second)
   where
-    (first, second) = splitAt (n) list
+    (first, second) = splitAt n list
 
 sumTrie :: (Int -> Int) -> ([Int] -> Int) -> Trie -> Int
 sumTrie func1 func2 (Leaf leaves)
@@ -89,3 +89,39 @@ member' value blockSize index hashed (Node bitVector ((SubTrie trie) : subNodes)
   | otherwise            = member' value blockSize index hashed (Node bitVector subNodes)
   where
     path = getIndex hashed index blockSize
+
+checkElem :: Int -> [Int] -> Bool
+checkElem value []
+  = False
+checkElem value (leaf : leaves)
+  | value /= leaf = checkElem value leaves
+  | otherwise     = True
+
+addSubNode :: SubNode -> Trie -> Trie
+addSubNode (subTrie) (Node bitVector subNodes)
+   = Node bitVector (subTrie : subNodes)
+
+insert :: HashFun -> Int -> Int -> Int -> Trie -> Trie
+insert hashFun maxDepth blockSize value trie
+  = insert' 0 trie
+  where
+    insert' :: Int -> Trie -> Trie
+    insert' currDepth (Leaf leaves)
+      | currDepth == maxDepth - 1 = Leaf [value]
+      | checkElem value leaves    = Leaf leaves
+      | otherwise                 = Leaf (value : leaves)
+    insert' currDepth trie'@(Node bitVector subnodes@(subN : subNs))
+      | currDepth == maxDepth - 1 = Leaf [value]
+      | bitVector == 0            = Node 1 (insertAt 0 (Term value) subnodes)
+      | bitVector == 1            = insert' (currDepth + 1) (Node bitVector subnodes)
+    insert' currDepth trie'@(Node 1 ((SubTrie trie'') : subnodes))
+      | currDepth == maxDepth - 1 = Leaf [value]
+      | otherwise                 = addSubNode replacement (insert' currDepth (Node 1 subnodes))
+      where
+        replacement               = SubTrie (insert' currDepth trie'')
+    insert' _ trie'
+      = trie'
+
+buildTrie :: HashFun -> Int -> Int -> [Int] -> Trie
+buildTrie hashFun maxDepth blockSize values
+  = foldr (insert hashFun maxDepth blockSize 0 empty) values
