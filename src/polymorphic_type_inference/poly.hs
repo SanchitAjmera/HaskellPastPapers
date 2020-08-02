@@ -49,21 +49,33 @@ primTypes
 
 -- Pre: The search item is in the table
 lookUp :: Eq a => a -> [(a, b)] -> b
-lookUp
-  = undefined
+lookUp element table
+  = tryToLookUp element undefined table
 
 tryToLookUp :: Eq a => a -> b -> [(a, b)] -> b
-tryToLookUp
-  = undefined
+tryToLookUp element def table
+  | isNothing result        = def
+  | otherwise               = fromJust result
+  where
+    result = lookup element table
 
 -- Pre: The given value is in the table
 reverseLookUp :: Eq b => b -> [(a, b)] -> [a]
-reverseLookUp
-  = undefined
+reverseLookUp element table
+  = [item | (item, value) <- table, value==element ]
 
 occurs :: String -> Type -> Bool
-occurs
-  = undefined
+occurs str TInt
+  = False
+occurs str TBool
+  = False
+occurs str TErr
+  = False
+occurs str (TVar str')
+  | str == str'       = True
+  | otherwise         = False
+occurs str (TFun var var')
+  = (occurs str var) || (occurs str var')
 
 ------------------------------------------------------
 -- PART II
@@ -72,22 +84,63 @@ occurs
 -- Pre: All type variables in the expression have a binding in the given
 --      type environment
 inferType :: Expr -> TEnv -> Type
-inferType
-  = undefined
+inferType (Boolean bool) _
+  = TBool
+inferType (Number number) _
+  = TInt
+inferType (Id str) table
+  = lookUp str table
+inferType (Prim str) table
+  = lookUp str primTypes
+inferType (Cond arg1 exp1 exp2) table
+  | (inferType arg1 table) /= TBool      = TErr
+  | inferType1 == (inferType exp2 table) = inferType1
+  | otherwise                            = TErr
+  where
+    inferType1 = inferType exp1 table
+inferType (App exp1 exp2) table
+  | type0 == TErr                        = TErr
+  | type1 == inferType exp2 table        = type2
+  | otherwise                            = TErr
+  where
+    type0 = inferType exp1 table
+    TFun type1 type2 = type0
+
 
 ------------------------------------------------------
 -- PART III
 
-applySub
-  = undefined
+applySub :: Sub -> Type -> Type
+applySub sub (TVar str)
+  = tryToLookUp str (TVar str) sub
+applySub sub (TFun type1 type2)
+  = TFun (applySub sub type1) (applySub sub type2)
+applySub sub type'
+  = type'
 
 unify :: Type -> Type -> Maybe Sub
 unify t t'
   = unifyPairs [(t, t')] []
 
 unifyPairs :: [(Type, Type)] -> Sub -> Maybe Sub
-unifyPairs
-  = undefined
+unifyPairs [] sub
+  = Just sub
+unifyPairs ((type1, type2) : ts) sub
+  | type1  == type2             = unifyPairs ts sub
+unifyPairs ((TVar v, type') : ts) sub
+  | (occurs v type')            = Nothing
+  | otherwise                   = unifyPairs updated ((v, type') : sub)
+  where
+    updated = [(applySub sub t1, applySub sub t2) | (t1, t2) <- ts ]
+unifyPairs ((type' , TVar v) : ts) sub
+  | (occurs v type')        = Nothing
+  | otherwise                   = unifyPairs updated ((v, type') : sub)
+  where
+    updated = [(applySub sub t1, applySub sub t2) | (t1, t2) <- ts ]
+unifyPairs (((TFun t1 t2),(TFun t1' t2')) : ts) sub
+  = unifyPairs ((t1,t1') : ((t2,t2') : ts)) sub
+unifyPairs _ _
+  = Nothing
 
 ------------------------------------------------------
 -- PART IV
