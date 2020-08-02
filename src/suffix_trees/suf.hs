@@ -4,46 +4,90 @@ data SuffixTree = Leaf Int | Node [(String, SuffixTree)]
 ------------------------------------------------------
 
 isPrefix :: String -> String -> Bool
-isPrefix
-  = undefined
+isPrefix [] str
+  = True
+isPrefix str []
+  = False
+isPrefix str@(char : chars) (char' : chars')
+  | char == char'       = isPrefix chars chars'
+  | otherwise           = False
 
 removePrefix :: String -> String -> String
-removePrefix
+removePrefix [] str
+  = str
+removePrefix (char : chars) (char' : chars')
 --Pre: s is a prefix of s'
-  = undefined
+  = removePrefix chars chars'
 
 suffixes :: [a] -> [[a]]
-suffixes
-  = undefined
+suffixes []
+  = []
+suffixes str
+  = [str] ++ suffixes (tail str)
 
 isSubstring :: String -> String -> Bool
-isSubstring
-  = undefined
+isSubstring str str'
+  = foldl (||) False isSubstrings
+  where
+    isSubstrings = map (isPrefix str) (suffixes str')
 
 findSubstrings :: String -> String -> [Int]
-findSubstrings
-  = undefined
+findSubstrings str str'
+  = [] ++ (findSubstrings' 0 suff)
+  where
+    suff = suffixes str'
+    findSubstrings' :: Int -> [String] -> [Int]
+    findSubstrings' index []
+      = []
+    findSubstrings' index (suff : suffs)
+      | isPrefix str suff     = [index] ++ findSubstrings' (index + 1) suffs
+      | otherwise             = findSubstrings' (index + 1) suffs
+
 
 ------------------------------------------------------
 
 getIndices :: SuffixTree -> [Int]
-getIndices
-  = undefined
+getIndices (Leaf leaf)
+  = [leaf]
+getIndices (Node [])
+  = []
+getIndices (Node ((str, suffixTree) : item))
+  = (getIndices suffixTree) ++ (getIndices (Node item))
 
 partition :: Eq a => [a] -> [a] -> ([a], [a], [a])
-partition
-  = undefined
+partition str@(char : chars) str'@(char' : chars')
+  | char == char'     = ((char : next1), next2, next3)
+  where
+    (next1, next2, next3) = partition chars chars'
+partition str str'
+  = ([], str, str')
 
 findSubstrings' :: String -> SuffixTree -> [Int]
-findSubstrings'
-  = undefined
+findSubstrings' str (Leaf i)
+  | str == ""               = [i]
+  | otherwise               = []
+findSubstrings' str (Node [])
+  = []
+findSubstrings' str (Node ((str', suffixTree) : item))
+  | rest1 == ""            = (getIndices suffixTree) ++ next
+  | rest2 == ""            = (findSubstrings' rest1 suffixTree) ++ next
+  | otherwise              = next
+  where
+    (common, rest1, rest2) = partition str str'
+    next                   = (findSubstrings' str (Node item))
 
 ------------------------------------------------------
 
 insert :: (String, Int) -> SuffixTree -> SuffixTree
-insert
-  = undefined
-
+insert (str, index) (Node subTree@((str', suffixTree) : item))
+  | common == ""           = insert (str, index) (Node item)
+  | common == str'         = insert (rest1, index) suffixTree
+  | common != str'         = Node ((str', replacement) : item)
+  where
+    replacement = Node [(rest1, Leaf index), (rest2, suffixTree)]
+    (common, rest1, rest2) = partition str str'
+insert (str, index) (Node [])
+  = Node [(s, Leaf index)]
 -- This function is given
 buildTree :: String -> SuffixTree
 buildTree s
