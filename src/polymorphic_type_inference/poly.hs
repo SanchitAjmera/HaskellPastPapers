@@ -54,28 +54,22 @@ lookUp element table
 
 tryToLookUp :: Eq a => a -> b -> [(a, b)] -> b
 tryToLookUp element def table
-  | isNothing result        = def
-  | otherwise               = fromJust result
-  where
-    result = lookup element table
+  = fromMaybe def (lookup element table)
 
 -- Pre: The given value is in the table
 reverseLookUp :: Eq b => b -> [(a, b)] -> [a]
 reverseLookUp element table
-  = [item | (item, value) <- table, value==element ]
+  = [item | (item, value) <- table, value == element ]
 
 occurs :: String -> Type -> Bool
-occurs str TInt
-  = False
-occurs str TBool
-  = False
-occurs str TErr
-  = False
 occurs str (TVar str')
   | str == str'       = True
   | otherwise         = False
 occurs str (TFun var var')
   = (occurs str var) || (occurs str var')
+occurs _ _
+  = False
+
 
 ------------------------------------------------------
 -- PART II
@@ -84,9 +78,9 @@ occurs str (TFun var var')
 -- Pre: All type variables in the expression have a binding in the given
 --      type environment
 inferType :: Expr -> TEnv -> Type
-inferType (Boolean bool) _
+inferType (Boolean _) _
   = TBool
-inferType (Number number) _
+inferType (Number _) _
   = TInt
 inferType (Id str) table
   = lookUp str table
