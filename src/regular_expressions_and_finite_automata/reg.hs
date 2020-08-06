@@ -50,41 +50,66 @@ showRE' re
 
 lookUp :: Eq a => a -> [(a, b)] -> b
 --Pre: There is exactly one occurrence of the item being looked up.
-lookUp
-  = undefined
+lookUp item table
+  = fromJust $ lookup item table
 
 simplify :: RE -> RE
-simplify
-  = undefined
+simplify (Opt re)
+  = Alt re Null
+simplify (Plus re)
+  = Seq re (Rep re)
+simplify (Seq re re')
+  = Seq (simplify re) (simplify re')
+simplify (Alt re re')
+  = Alt (simplify re) (simplify re')
 
 --------------------------------------------------------
 -- Part II
 
 startState :: Automaton -> State
-startState
-  = undefined
+startState (start, _, _)
+  = start
 terminalStates :: Automaton -> [State]
-terminalStates
-  = undefined
+terminalStates (_, terminal, _)
+  = terminal
 transitions :: Automaton -> [Transition]
-transitions
-  = undefined
+transitions (_, _, transition)
+  = transition
 
 isTerminal :: State -> Automaton -> Bool
-isTerminal
-  = undefined
+isTerminal _ (_, [], _)
+  = False
+isTerminal state (start, (terminal : terminals), transitions)
+  | state == terminal = True
+  | otherwise         = isTerminal state (start, terminals, transitions)
 
 transitionsFrom :: State -> Automaton -> [Transition]
-transitionsFrom
-  = undefined
+transitionsFrom state (start, terminals, transitions)
+  = [transition | transition@(state1, state2, label) <- transitions, state1 == state]
 
 labels :: [Transition] -> [Label]
-labels
-  = undefined
+labels transitions
+  = nub [label | (_, _, label) <- transitions, label /= Eps]
+
+
 
 accepts :: Automaton -> String -> Bool
-accepts
-  = undefined
+accepts auto@(start, _, _ ) str
+  = accepts' start str
+  where
+    accepts' :: State -> String -> Bool
+    accepts' state str
+      | (isTerminal state auto) && (null str) = True
+      | otherwise                        = any (True==) ( map (try str) transitions)
+      where
+        transitions = transitionsFrom state auto
+        try :: String -> Transition -> Bool
+        try str (initState, targetState, Eps)
+          = accepts' targetState str
+        try str (initState, targetState, (C c))
+          | (null str)       = False
+          | (head str)  == c = accepts' targetState $ tail str
+          | otherwise        = False
 
 --------------------------------------------------------
 -- Part III
@@ -96,7 +121,7 @@ makeNDA re
     (transitions, k) = make (simplify re) 1 2 3
 
 make :: RE -> Int -> Int -> Int -> ([Transition], Int)
-make
+make re 
   = undefined
 
 --------------------------------------------------------
