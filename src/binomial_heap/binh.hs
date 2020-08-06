@@ -6,40 +6,54 @@ data BinTree a = Node a Int (BinHeap a)
 --------------------------------------------------------------
 -- PART I
 
-key :: BinTree a -> a
-key
-  = undefined
+value :: BinTree a -> a
+value (Node a _ _)
+  = a
 
 rank :: BinTree a -> Int
-rank
-  = undefined
+rank (Node _ r _)
+  = r
 
 children :: BinTree a -> [BinTree a]
-children
-  = undefined
+children (Node _ _ c)
+  = c
 
 combineTrees :: Ord a => BinTree a -> BinTree a -> BinTree a
-combineTrees
-  = undefined
-
+combineTrees binTree@(Node root rank children) binTree'@(Node root' rank' children')
+  | root < root' = Node root (rank + 1) (binTree' : children)
+  | otherwise    = Node root' (rank' + 1) (binTree : children')
 --------------------------------------------------------------
 -- PART II
 
 extractMin :: Ord a => BinHeap a -> a
-extractMin
-  = undefined
+extractMin binTrees
+  = minimum (map value binTrees)
 
 mergeHeaps :: Ord a => BinHeap a -> BinHeap a -> BinHeap a
-mergeHeaps
-  = undefined
+mergeHeaps [] h
+  =  h
+mergeHeaps h []
+  = h
+mergeHeaps binHeap@(binTree : binTrees) binHeap'@(binTree' : binTrees')
+  | r < r'                   = binTree : (mergeHeaps binTrees binHeap')
+  | r > r'                   = binTree' : (mergeHeaps binHeap binTrees')
+  | r == r'                  = mergeHeaps [combineTrees binTree binTree'] (mergeHeaps binTrees binTrees')
+  where
+    r = rank binTree
+    r' = rank binTree'
 
 insert :: Ord a => a -> BinHeap a -> BinHeap a
-insert
-  = undefined
+insert value binHeap
+  = mergeHeaps [Node value 0 []] binHeap
 
 deleteMin :: Ord a => BinHeap a -> BinHeap a
-deleteMin
-  = undefined
+deleteMin binTrees
+  = mergeHeaps [binTree | binTree <- binTrees , binTree /= minTree] minChildren
+  where
+    minValue = extractMin binTrees
+    minTree  = [binTree | binTree <- binTrees, (value binTree == minValue)]!!0
+    minChildren = reverse $ children minTree
+
 
 remove :: Eq a => a -> BinHeap a -> BinHeap a
 remove
@@ -49,20 +63,60 @@ removeMin :: Ord a => BinHeap a -> (BinTree a, BinHeap a)
 removeMin
   = undefined
 
+constructHeap :: Ord a => [a] -> BinHeap a -> BinHeap a
+constructHeap [] binHeap
+  = binHeap
+constructHeap (item : items) binHeap
+  = constructHeap items (insert item binHeap)
+
+sortItem :: Ord a => BinHeap a -> [a]
+sortItem []
+  = []
+sortItem binHeap
+  = minValue : (sortItem $ deleteMin binHeap)
+  where
+    minValue = extractMin binHeap
+
 binSort :: Ord a => [a] -> [a]
-binSort
-  = undefined
+binSort items
+  = sorted
+  where
+    binHeap = constructHeap items []
+    sorted  = sortItem binHeap
+
 
 --------------------------------------------------------------
 -- PART III
+binary :: Int -> [Int]
+binary 0
+  = []
+binary decimal
+  = (binary $ div decimal 2 ) ++ [mod decimal 2]
+
 
 toBinary :: BinHeap a -> [Int]
-toBinary
-  = undefined
+toBinary binHeap
+  = reverse $ toBinary' 0 binHeap
+  where
+    toBinary' :: Int -> BinHeap a -> [Int]
+    toBinary' _ []
+      = []
+    toBinary' index binHeap'@(binTree : binTrees)
+      | index == (rank binTree) = 1 : (toBinary' (index + 1) binTrees)
+      | otherwise               = 0 : (toBinary' (index + 1) binHeap')
 
 binarySum :: [Int] -> [Int] -> [Int]
-binarySum
-  = undefined
+binarySum bin bin'
+  = binary decimalSum
+  where
+    decimalSum = (toDecimal bin (length bin - 1)) + (toDecimal bin' (length bin' - 1))
+    toDecimal :: [Int] -> Int -> Int
+    toDecimal [] _
+      = 0
+    toDecimal (b : bin) index
+      | b == 1    = 2^index + toDecimal bin (index - 1)
+      | otherwise = toDecimal bin (index - 1)
+
 
 ------------------------------------------------------
 -- Some sample trees...
@@ -126,6 +180,3 @@ h7 = [Node 4 3 [Node 4 2 [Node 12 1 [Node 16 0 []],
                           Node 5 0 []],
                 Node 6 1 [Node 8 0 []],
                 Node 10 0 []]]
-
-
-s
