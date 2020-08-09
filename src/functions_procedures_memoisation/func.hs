@@ -77,35 +77,77 @@ assignArray :: Value -> Value -> Value -> Value
 -- The arguments are the array, index and (new) value respectively
 -- Pre: The three values have the appropriate value types (array (A),
 --      integer (I) and integer (I)) respectively.
-assignArray
-  = undefined
+assignArray (A values) (I i) (I v)
+  = A ((take i values) ++ [(fst (values!!i), v)] ++ (drop (i+1) values))
+
 
 updateVar :: (Id, Value) -> State -> State
-updateVar
-  = undefined
+updateVar (id', value) []
+  = [(id', (Local, value))]
+updateVar (id', value) (state@(id'', (scope, value')) : states)
+  | id' == id''   = [(id', (scope, value))] ++ states
+  | otherwise     = [state] ++ (updateVar (id', value) states)
 
 ---------------------------------------------------------------------
 -- Part II
 
 applyOp :: Op -> Value -> Value -> Value
 -- Pre: The values have the appropriate types (I or A) for each primitive
-applyOp
-  = undefined
+applyOp Add (I val) (I val')
+  = I (val + val')
+applyOp Mul (I val) (I val')
+  = I (val * val')
+applyOp Less (I val) (I val')
+  | val < val'  = I 1
+  | otherwise   = I 0
+applyOp Equal (I val) (I val')
+  | val == val' = I 1
+  | otherwise   = I 0
+applyOp Index (A bindings) (I val)
+  | isNothing $ result = I 0
+  | otherwise          = I (fromJust result)
+  where
+    result = lookup val bindings
+
 
 bindArgs :: [Id] -> [Value] -> State
 -- Pre: the lists have the same length
-bindArgs
-  = undefined
+bindArgs [] []
+  = []
+bindArgs (id' : ids) (value : values)
+  = (id', (Local, value)) : (bindArgs ids values)
+
 
 evalArgs :: [Exp] -> [FunDef] -> State -> [Value]
-evalArgs
-  = undefined
+evalArgs [] _ _
+  = []
+evalArgs (exp1 : exps) funDefs state
+  = (eval exp1 funDefs state) : (evalArgs exps funDefs state)
+
 
 eval :: Exp -> [FunDef] -> State -> Value
 -- Pre: All expressions are well formed
 -- Pre: All variables referenced have bindings in the given state
-eval
-  = undefined
+eval (Const val) _ _
+  = val
+
+eval (Var id') funDef state
+  = getValue id' state
+
+eval (Cond exp1 exp2 exp3) funDef state
+  | eval exp1 funDef state == I 1 = eval exp2 funDef state
+  | otherwise                     = eval exp3 funDef state
+
+eval (OpApp op exp1 exp2) funDef state
+  = applyOp op (eval exp1 funDef state) (eval exp2 funDef state)
+
+eval (FunApp id' exps) funDefs state
+  = eval e funDefs (binding ++ state)
+  where
+    (as, e) = fromJust $ lookup id' funDefs
+    vs      = evalArgs exps funDefs state
+    binding  = bindArgs as vs
+
 
 ---------------------------------------------------------------------
 -- Part III
