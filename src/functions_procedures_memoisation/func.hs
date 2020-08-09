@@ -130,17 +130,13 @@ eval :: Exp -> [FunDef] -> State -> Value
 -- Pre: All variables referenced have bindings in the given state
 eval (Const val) _ _
   = val
-
 eval (Var id') funDef state
   = getValue id' state
-
 eval (Cond exp1 exp2 exp3) funDef state
   | eval exp1 funDef state == I 1 = eval exp2 funDef state
   | otherwise                     = eval exp3 funDef state
-
 eval (OpApp op exp1 exp2) funDef state
   = applyOp op (eval exp1 funDef state) (eval exp2 funDef state)
-
 eval (FunApp id' exps) funDefs state
   = eval e funDefs (binding ++ state)
   where
@@ -156,8 +152,28 @@ executeStatement :: Statement -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All statements are well formed
 -- Pre: For array element assignment (AssignA) the array variable is in scope,
 --      i.e. it has a binding in the given state
-executeStatement
-  = undefined
+executeStatement (Assign id' exp') funDefs procDefs state
+  | isNothing $ lookup id' state = (id', (Local, evaluation)) : state
+  | otherwise                    = updateVar (id', evaluation) state
+  where
+    evaluation = eval exp' funDefs state
+
+executeStatement (AssignA id' exp1 exp2) funDefs procDefs state
+  = updateVar (id', newValue) state
+  where
+    (scope, (A values)) = fromJust $ lookup id' state
+    newValue = assignArray (A values) (eval exp1 funDefs state) (eval exp2 funDefs state)
+
+executeStatement (If exp' block1 block2) funDefs procDefs state
+  | eval exp' funDefs state == I 1= executeBlock block1 funDefs procDefs state
+  | otherwise                     = executeBlock block2 funDefs procDefs state
+
+executeStatement statement@(While exp' block) funDefs procDefs state
+  | eval exp' funDefs state == I 1 = executeStatement statement funDefs procDefs state1
+  | otherwise                       = state
+  where
+    state1 = executeBlock block funDefs procDefs state
+
 
 executeBlock :: Block -> [FunDef] -> [ProcDef] -> State -> State
 -- Pre: All code blocks and associated statements are well formed
