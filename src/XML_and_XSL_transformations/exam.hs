@@ -90,7 +90,7 @@ getValue xml
     getValue' (Element name attribute []) str
       = str
     getValue' (Text a) str
-      = str ++ a 
+      = str ++ a
     getValue' (Element name attribute (xml : xmls)) str
       = getValue' (Element name attribute xmls) str'
       where
@@ -116,18 +116,32 @@ sentinel
 
 addText :: String -> Stack -> Stack
 -- Pre: There is at least one Element on the stack
-addText
-  = undefined
+addText str (xml : xmls)
+  = (addChild (Text str) xml) :  xmls
+
 
 popAndAdd :: Stack -> Stack
 -- Pre: There are at least two Elements on the stack
-popAndAdd
-  = undefined
+popAndAdd (xml : xmls)
+  = (addChild xml (head xmls)) : (tail xmls)
 
 parseAttributes :: String -> (Attributes, String)
 -- Pre: The XML attributes string is well-formed
-parseAttributes
-  = undefined
+parseAttributes ""
+  = ([], "")
+parseAttributes str@(s : str')
+  | s == '>'  = ([], str')
+  | isAlpha s = (attr ++ (fst result), (snd result))
+  | otherwise = parseAttributes str'
+  where
+    (s2, rest) = findDigit str'
+    attr = [([s], s2)]
+    result = parseAttributes rest
+    findDigit :: String -> (String, String)
+    findDigit (s : str)
+      | isDigit s = ([s], str)
+      | otherwise = findDigit str
+
 
 parse :: String -> XML
 -- Pre: The XML string is well-formed
@@ -135,8 +149,27 @@ parse s
   = parse' (skipSpace s) [sentinel]
 
 parse' :: String -> Stack -> XML
-parse'
-  = undefined
+parse' _ []
+  = sentinel
+parse' strs@(str : str') stack@(xml : xmls)
+  | strs == "" = head children
+  | otherwise  = parse'' strs
+  where
+    (Element name attr children) = xml
+    parse'' :: String -> XML
+    parse'' ""
+      = stack!!0
+    parse'' (str : str')
+      | cond1 && (head str') == '/' = parse' (tail $ snd (span ('>'/=) str')) (popAndAdd stack)
+      | cond1                       = parse' string stack'
+      | otherwise                   = parse' recursion (addText text stack)
+      where
+        cond1 = (str == '<')
+        (name, attributes) = span (' '/=) str'
+        (text, recursion) = span ('<' /=) str'
+        (attribute, string) = parseAttributes attributes
+        element = Element name attribute []
+        stack' = element : stack
 
 -------------------------------------------------------------------------
 -- Part III
