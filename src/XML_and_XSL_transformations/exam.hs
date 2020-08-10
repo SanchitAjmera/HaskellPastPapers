@@ -46,29 +46,55 @@ printXMLs
 -- Part I
 
 skipSpace :: String -> String
-skipSpace
-  = undefined
+skipSpace str@(str' : strs)
+  | isSpace str' = skipSpace strs
+  | otherwise = str
 
 getAttribute :: String -> XML -> String
-getAttribute
-  = undefined
+getAttribute str (Element name attributes xmls)
+  | isNothing $ result = ""
+  | otherwise          = fromJust result
+  where
+    result = lookup str attributes
+getAttribute _ _
+  = ""
 
 getChildren :: String -> XML -> [XML]
-getChildren
-  = undefined
+getChildren str (Element name attributes [])
+  = []
+getChildren str (Element name attributes (xml : xmls))
+  | name' == str = xml : next
+  | otherwise    = next
+  where
+    next = getChildren str $ Element name attributes xmls
+    Element name' _ _ = xml
 
 getChild :: String -> XML -> XML
-getChild
-  = undefined
+getChild str xml
+  | result == [] = Text ""
+  | otherwise    = head result
+  where
+    result = getChildren str xml
+
 
 addChild :: XML -> XML -> XML
 -- Pre: the second argument is an Element
-addChild
-  = undefined
+addChild xml (Element name attribute xmls)
+  = Element name attribute (xmls ++ [xml])
 
 getValue :: XML -> XML
-getValue
-  = undefined
+getValue xml
+  = Text $ getValue' xml ""
+  where
+    getValue' :: XML -> String -> String
+    getValue' (Element name attribute []) str
+      = str
+    getValue' (Text a) str
+      = str ++ a 
+    getValue' (Element name attribute (xml : xmls)) str
+      = getValue' (Element name attribute xmls) str'
+      where
+        str' = getValue' xml str
 
 -------------------------------------------------------------------------
 -- Part II
