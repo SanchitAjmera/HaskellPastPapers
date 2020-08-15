@@ -100,14 +100,32 @@ applyPropagate (name, args, body)
 
 foldConst :: Exp -> Exp
 -- Pre: the expression is in SSA form
-foldConst
-  = undefined
+foldConst exp'@(Phi (Const c) (Const c'))
+  | c == c'   = Const c
+  | otherwise = exp'
+foldConst (Apply op (Const c) (Const c'))
+  = Const (apply op c c')
+foldConst (Apply op (Var id') (Const 0))
+  = Var id'
+foldConst (Apply op (Const 0) (Var id'))
+  = Var id'
+foldConst exp'
+  = exp'
+
 
 sub :: Id -> Int -> Exp -> Exp
 -- Pre: the expression is in SSA form
-sub
-  = undefined
-
+sub id' subInt (Apply op exp1 exp2)
+  = foldConst (Apply op (sub id' subInt exp1) (sub id' subInt exp2))
+sub id' subInt (Var id'')
+  | id' == id'' = Const subInt
+  | otherwise   = Var id''
+sub id' subInt (Phi exp1 exp2)
+  = foldConst (Phi (f exp1) (f exp2))
+  where
+    f = sub id' subInt
+sub _ _ exp'
+  = exp'
 -- Use (by uncommenting) any of the following, as you see fit...
 -- type Worklist = [(Id, Int)]
 -- scan :: Id -> Int -> Block -> (Worklist, Block)
@@ -115,9 +133,41 @@ sub
 
 propagateConstants :: Block -> Block
 -- Pre: the block is in SSA form
-propagateConstants
-  = undefined
+propagateConstants b
+  | b == propagateConstants' (wl, b') = b
+  | otherwise                         = propagateConstants' (wl, b')  
+  where
+    (wl, b') = scan "$INVALID" 0 b
+    propagateConstants' :: (State, Block) -> Block
+    propagateConstants' ([], b)
+      = propagateConstants b
+    propagateConstants' ((v, i) : wl, b)
+      = propagateConstants' (wl' ++ wl, b')
+      where
+        (wl', b') = scan v i b
 
+scan ::Id -> Int -> Block -> (State,Block)
+scan _ _ []
+  = ([],[])
+scan v i ((Assign v' (Const i')) : b)
+  = ((v', i') : wl, b')
+  where
+    (wl, b') = scan v i b
+scan v i ((Assign v' e) : b)
+  = (wl, (Assign v' (sub v i e) : b'))
+  where
+    (wl, b') = scan v i b
+scan v i ((DoWhile b e) : b')
+  = (wlw ++ wl, (DoWhile bw (sub v i e) : b''))
+  where
+    (wlw, bw) = scan v i b
+    (wl, b'') = scan v i b'
+scan v i ((If e b1 b2) : b)
+  = (wl2 ++ wl1 ++ wl, (If (sub v i e) mb1 mb2) : b'')
+  where
+    (wl1, mb1) = scan v i b1
+    (wl2, mb2) = scan v i b2
+    (wl, b'')  = scan v i b
 ------------------------------------------------------------------------
 -- Given functions for testing unPhi...
 
