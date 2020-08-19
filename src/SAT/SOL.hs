@@ -34,17 +34,19 @@ vars :: Formula -> [Id]
 vars (Var i)
   = [i]
 vars (Not f)
-  = nub $ vars f
+  = sort $ nub $ vars f
 vars (And f f')
-  = nub $ (vars f) ++ (vars f')
+  = sort $ nub $ (vars f) ++ (vars f')
 vars (Or f f')
-  = nub $ (vars f) ++ (vars f')
+  = sort $ nub $ (vars f) ++ (vars f')
 
 
 -- 1 mark
 idMap :: Formula -> IdMap
-idMap
-  = undefined
+idMap f
+  = zip vs [1..(length vs)]
+  where
+    vs = vars f
 
 --------------------------------------------------------------------------
 -- Part II
@@ -62,19 +64,55 @@ distribute a b
 
 -- 4 marks
 toNNF :: Formula -> NNF
-toNNF
-  = undefined
+toNNF (Not (And f f'))
+  = Or (toNNF (Not f)) (toNNF (Not f'))
+toNNF (Not (Or f f'))
+  = And (toNNF (Not f)) (toNNF (Not f'))
+toNNF (Not (Not f))
+  = toNNF f
+toNNF (And f f')
+  = (And (toNNF f) (toNNF f'))
+toNNF (Or f f')
+  = (Or (toNNF f) (toNNF f'))
+toNNF f
+  = f
 
 -- 3 marks
 toCNF :: Formula -> CNF
-toCNF
-  = undefined
+toCNF f
+  = toCNF' $ toNNF f
+  where
+    toCNF' :: NNF -> CNF
+    toCNF' (Or cnf@(And f f') f'')
+      = distribute cnf f''
+    toCNF' (Or f cnf@(And f' f''))
+      = distribute cnf f
+    toCNF' (And f f')
+      = And (toCNF f) (toCNF f')
+    toCNF' (Or f f')
+      = Or (toCNF f) (toCNF f')
+    toCNF' f
+      = f
 
 -- 4 marks
 flatten :: CNF -> CNFRep
-flatten
-  = undefined
-
+flatten cnf
+  = flatten' im cnf
+  where
+    im = idMap cnf
+    flatten' :: IdMap -> CNF -> CNFRep
+    flatten' im (Var i)
+      = [[lookUp i im]]
+    flatten' im (And f f')
+      = (fim f) ++ (fim f')
+      where
+        fim = flatten' im
+    flatten' im (Or f f')
+      = [(fim f)!!0 ++ (fim f')!!0]
+      where
+        fim = flatten' im
+    flatten' im (Not (Var i))
+      = [[-(lookUp i im)]]
 --------------------------------------------------------------------------
 -- Part III
 
