@@ -40,30 +40,40 @@ lookUp x table
 --------------------------------------------------------------------
 
 allSame :: Eq a => [a] -> Bool
-allSame
-  = undefined
+allSame []
+  = True
+allSame v
+  = all ((head v)==) v
 
 remove :: Eq a => a -> [(a, b)] -> [(a, b)]
-remove
-  = undefined
+remove i t
+  = [(a, b) | (a, b) <- t, a /= i]
 
 lookUpAtt :: AttName -> Header -> Row -> AttValue
 --Pre: The attribute name is present in the given header.
-lookUpAtt
-  = undefined
+lookUpAtt att h r
+  = r !! (fromJust (elemIndex (att, lookUp att h) h))
 
 removeAtt :: AttName -> Header -> Row -> Row
-removeAtt
-  = undefined
+removeAtt att h r
+  = [d | d <- r, d /= lookUpAtt att h r]
 
 addToMapping :: Eq a => (a, b) -> [(a, [b])] -> [(a, [b])]
-addToMapping
-  = undefined
+addToMapping _ []
+  = []
+addToMapping p@(x, v) (m1@(x', v') : m)
+  | x == x'   = (x', v : v') : m
+  | otherwise = m1 : addToMapping p m
 
 buildFrequencyTable :: Attribute -> DataSet -> [(AttValue, Int)]
 --Pre: Each row of the data set contains an instance of the attribute
-buildFrequencyTable
-  = undefined
+buildFrequencyTable att d
+  = map count (snd att)
+  where
+    z = concat $ snd d
+    count atv
+      =  (atv, length [0 | atv' <- z, atv == atv'])
+
 
 --------------------------------------------------------------------
 -- PART II
