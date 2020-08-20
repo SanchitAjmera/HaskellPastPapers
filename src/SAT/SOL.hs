@@ -94,13 +94,12 @@ toCNF f
     toCNF' f
       = f
 
--- 4 marks
+-- 4 marks get rid of im define it in where clause
 flatten :: CNF -> CNFRep
 flatten cnf
   = flatten' im cnf
   where
     im = idMap cnf
-    flatten' :: IdMap -> CNF -> CNFRep
     flatten' im (Var i)
       = [[lookUp i im]]
     flatten' im (And f f')
@@ -108,11 +107,11 @@ flatten cnf
       where
         fim = flatten' im
     flatten' im (Or f f')
-      = [(fim f)!!0 ++ (fim f')!!0]
+      = [concat (fim f ++ fim f')]
       where
         fim = flatten' im
     flatten' im (Not (Var i))
-      = [[-(lookUp i im)]]
+      = [[negate (lookUp i im)]]
 --------------------------------------------------------------------------
 -- Part III
 
