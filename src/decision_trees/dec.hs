@@ -80,12 +80,25 @@ buildFrequencyTable att d
 --------------------------------------------------------------------
 
 nodes :: DecisionTree -> Int
-nodes
-  = undefined
+nodes Null
+  = 0
+nodes (Leaf _)
+  = 1
+nodes (Node attn ns)
+  = 1 + sm
+  where
+    sm = sum $ map nodes ds
+    ds = map snd ns
+
 
 evalTree :: DecisionTree -> Header -> Row -> AttValue
-evalTree
-  = undefined
+evalTree Null _ _
+  = ""
+evalTree (Leaf attv) _ _
+  = attv
+evalTree (Node attn ((attv, ds) : ns)) h r'@(r : rs)
+  | r == attv = evalTree ds h rs
+  | otherwise = evalTree (Node attn ns) h r'
 
 --------------------------------------------------------------------
 -- PART III
