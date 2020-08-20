@@ -118,13 +118,58 @@ flatten cnf
 
 -- 5 marks
 propUnits :: CNFRep -> (CNFRep, [Int])
-propUnits
-  = undefined
+propUnits c
+  | s == []   = (c, [])
+  | otherwise =  (c'', s ++ i )
+  where
+    c' = remove c s
+    s  = findSingleton c
+    (c'', i) = propUnits c'
+
+remove :: CNFRep -> [Int] -> CNFRep
+remove [] s
+  = []
+remove (c : cs) s
+  | elem r c    = next
+  | elem (-r) c = [i | i <- c, i /= (-r)] : next
+  | otherwise   = c : (remove cs s)
+  where
+    next = remove cs s
+    r    = s!!0
+
+-- Helper function for propUnits to find singleton clauses in a CNFRep
+findSingleton :: CNFRep -> [Int]
+findSingleton []
+  = []
+findSingleton (c1 : cs)
+  | length c1 == 1 = c1
+  | otherwise      = findSingleton cs
 
 -- 4 marks
 dp :: CNFRep -> [[Int]]
-dp
-  = undefined
+dp cnfr
+  | elem [] cnfr1  && elem [] cnfr2 = []
+  | elem [] cnfr1                   = [i ++ i2]
+  | elem [] cnfr2                   = [i ++ i1]
+  | otherwise                       = [i ++ i1, i ++ i2]
+  where
+    c = (head cnfr')!!0
+    (cnfr', i)  = propUnits cnfr
+    (cnfr1, i1) = dp' c cnfr'
+    (cnfr2, i2) = dp' (-c) cnfr'
+
+
+dp' :: Int -> CNFRep -> (CNFRep, [Int])
+
+dp' c cnfr
+  | cnfr' == []   = ([], i)
+  | elem [] cnfr' = (cnfr', [])
+  | otherwise     = (cnfr'', i ++ i')
+  where
+    (cnfr', i)   = propUnits ([c] : cnfr)
+    (cnfr'', i') = dp' ((head cnfr')!!0) cnfr'
+
+
 
 --------------------------------------------------------------------------
 -- Part IV
